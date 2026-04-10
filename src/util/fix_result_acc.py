@@ -13,7 +13,7 @@ def normalize_math(s):
     s = re.sub(r'\\mbox\{([^}]*)\}', r'\1', s)
     s = s.replace(',', '').replace(r'\!', '').replace('$', '')
     s = re.sub(r'\^\\circ\s*', '', s)
-    s = s.replace('^{\\circ}', '').replace('^\circ', '')
+    s = s.replace(r'^{\\circ}', '').replace(r'^\circ', '')
     s = s.replace(r'\dfrac', r'\frac').replace(r'\left', '').replace(r'\right', '')
     
     # 移除变量前缀

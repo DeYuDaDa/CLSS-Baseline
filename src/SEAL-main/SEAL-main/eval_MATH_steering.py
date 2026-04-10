@@ -5,7 +5,7 @@ import json
 import random
 import torch
 import evaluate
-from transformers import  AutoTokenizer
+from transformers import  AutoTokenizer, AutoModelForCausalLM
 from modeling_utils.modeling_qwen2 import Qwen2ForCausalLM
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
@@ -156,10 +156,105 @@ def main(args):
         fout.write(prompts[0])
 
 
-    if "qwen" in args.model_name_or_path.lower():
-        model = Qwen2ForCausalLM.from_pretrained(args.model_name_or_path, device_map="auto")
+    # 检查模型类型并加载
+    if "qwen3" in args.model_name_or_path.lower():
+        # 对于Qwen3模型，使用AutoModelForCausalLM加载
+        model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path, device_map="auto")
+        
+        # 添加steering相关属性
+        model.steering_flag = False
+        model.steering_vector = None
+        model.steering_layer = None
+        model.steering_coef = 0.0
+        model.steering_think_flag = None
+        model.steering_split_ids = None
+        model.steering_think_start_id = None
+        model.steering_think_end_id = None
+        model.new_round = False
+        model.cur_steps = 0
+        
+        # 添加steering相关方法
+        def set_steering_flag(self, steering_flag, steering_layer=None, steer_vec=None, steer_coef=0.0, tokenizer=None):
+            self.steering_flag = steering_flag
+            self.steering_vector = steer_vec
+            self.steering_layer = steering_layer
+            self.steering_coef = steer_coef
+            self.steering_think_flag = None
+            self.steering_split_ids = None
+            self.steering_think_start_id = None
+            self.steering_think_end_id = None
+            if steering_flag:
+                assert steering_layer is not None, "Steering layer must be provided for steering"
+                assert steer_vec is not None, "Steering vector must be provided for steering"
+                assert tokenizer is not None, "Tokenizer must be provided for steering"
+                vocab = tokenizer.get_vocab()
+                self.steering_split_ids = torch.LongTensor([vocab[token] for token in vocab.keys() if "ĊĊ" in token]).to(self.device)
+                self.steering_think_start_id = tokenizer.encode("<think>", add_special_tokens=False)[0]
+                self.steering_think_end_id = tokenizer.encode("</think>", add_special_tokens=False)[0]
+        
+        def start_new_round(self):
+            self.new_round = True
+            self.cur_steps = 0
+            self.steering_think_flag = None
+        
+        # 动态添加方法
+        import types
+        model.set_steering_flag = types.MethodType(set_steering_flag, model)
+        model.start_new_round = types.MethodType(start_new_round, model)
+        
+        # 重写forward方法以支持steering
+        original_forward = model.forward
+        
+        def custom_forward(self, input_ids=None, attention_mask=None, position_ids=None, past_key_values=None, 
+                          inputs_embeds=None, labels=None, use_cache=None, output_attentions=None, 
+                          output_hidden_states=None, return_dict=None, cache_position=None, 
+                          num_logits_to_keep=0, **loss_kwargs):
+            output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
+            output_hidden_states = output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
+            return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+            
+            if hasattr(self, 'steering_flag') and self.steering_flag:
+                if self.new_round:
+                    self.new_round = False
+                    self.steering_think_flag = (input_ids==self.steering_think_start_id).sum(1).to(torch.bool)
+                else:
+                    assert input_ids.shape[1]==1, "use cache"
+                last_tokens = input_ids[:,-1]
+                self.steering_think_flag = torch.logical_or(self.steering_think_flag, last_tokens==self.steering_think_start_id)
+                self.steering_think_flag = torch.logical_and(self.steering_think_flag, last_tokens!=self.steering_think_end_id)
+                split_flag = torch.isin(last_tokens, self.steering_split_ids.to(input_ids.device))
+                steering_flag = torch.logical_and(split_flag, self.steering_think_flag)
+                if not torch.any(steering_flag):
+                    steering_flag = None
+            else:
+                steering_flag = None
+            
+            if hasattr(self, 'cur_steps'):
+                self.cur_steps += 1
+            
+            # 调用原始forward方法
+            outputs = original_forward(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                position_ids=position_ids,
+                past_key_values=past_key_values,
+                inputs_embeds=inputs_embeds,
+                labels=labels,
+                use_cache=use_cache,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+                return_dict=return_dict,
+                cache_position=cache_position,
+                num_logits_to_keep=num_logits_to_keep,
+                **loss_kwargs
+            )
+            
+            return outputs
+        
+        model.forward = types.MethodType(custom_forward, model)
     else:
-        raise ValueError("Model not supported")
+        # 对于Qwen2模型，使用自定义的Qwen2ForCausalLM
+        model = Qwen2ForCausalLM.from_pretrained(args.model_name_or_path, device_map="auto")
     
     if args.steering:
         steer_vec = torch.load(args.steering_vector, weights_only=True)
