@@ -159,7 +159,7 @@ def main(args):
     # 检查模型类型并加载
     if "qwen3" in args.model_name_or_path.lower():
         # 对于Qwen3模型，使用AutoModelForCausalLM加载
-        model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path, device_map="auto")
+        model = AutoModelForCausalLM.from_pretrained(args.model_name_or_path, device_map="auto", torch_dtype=torch.bfloat16)
         
         # 添加steering相关属性
         model.steering_flag = False
