@@ -294,7 +294,7 @@ def main(args):
         with torch.no_grad():
             output = model.generate(
                 **tokenized_batch, 
-                do_sample=False, 
+                do_sample=True, 
                 max_new_tokens=args.max_tokens,
                 use_cache=True,
                 eos_token_id=eos_ids,
