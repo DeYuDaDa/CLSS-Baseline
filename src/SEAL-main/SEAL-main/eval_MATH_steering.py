@@ -202,7 +202,9 @@ def main(args):
                         if hasattr(self, 'current_act_steering_flag') and self.current_act_steering_flag is not None:
                             h = output[0] if isinstance(output, tuple) else output
                             flag = self.current_act_steering_flag.view(-1, 1, 1).to(h.dtype)
-                            h_new = h + self.steering_coef * self.steering_vector.view(1, 1, -1) * flag
+                            # Ensure the added vector has the same dtype as h to avoid upcasting to float32
+                            steer = (self.steering_coef * self.steering_vector.view(1, 1, -1)).to(h.dtype)
+                            h_new = h + steer * flag
                             return (h_new,) if isinstance(output, tuple) else h_new
                         return output
                     self._steering_hook_handle = self.model.layers[steering_layer].register_forward_hook(steering_hook)
@@ -275,7 +277,8 @@ def main(args):
     
     if args.steering:
         steer_vec = torch.load(args.steering_vector, weights_only=True)
-        steer_vec = steer_vec.to(model.device)
+        # Explicitly cast to model's device and dtype
+        steer_vec = steer_vec.to(model.device).to(model.dtype)
         model.set_steering_flag(steering_flag=True, steering_layer=args.steering_layer, steer_vec=steer_vec,  steer_coef=args.steering_coef, tokenizer=tokenizer)
 
     outputs = []
