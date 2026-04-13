@@ -281,8 +281,21 @@ def main(args):
         batch = prompts[i:i+args.batch_size]
         tokenized_batch = tokenizer(batch, return_tensors="pt", padding=True)
         tokenized_batch = {k: v.to(model.device) for k, v in tokenized_batch.items()}
+        
+        eos_ids = [tokenizer.eos_token_id]
+        if "qwen" in args.model_name_or_path.lower():
+            eos_ids.extend([151645, 151643])
+        eos_ids = list(set([e for e in eos_ids if e is not None]))
+        
         with torch.no_grad():
-            output = model.generate(**tokenized_batch, do_sample=False, max_new_tokens=args.max_tokens,use_cache=True)
+            output = model.generate(
+                **tokenized_batch, 
+                do_sample=False, 
+                max_new_tokens=args.max_tokens,
+                use_cache=True,
+                eos_token_id=eos_ids,
+                pad_token_id=tokenizer.pad_token_id
+            )
         prompt_len = tokenized_batch["input_ids"].shape[1]
         output = [tokenizer.decode(o[prompt_len:], skip_special_tokens=True) for o in output]
         outputs.extend(output)

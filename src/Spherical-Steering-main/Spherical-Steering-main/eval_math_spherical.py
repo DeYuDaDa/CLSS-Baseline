@@ -88,8 +88,13 @@ def main(args):
 
     results = []
     for i in trange(0, len(prompts), args.batch_size, desc="Generating"):
-        batch_prompts = prompts[i : i + args.batch_size]
+        batch_prompts = prompts[i:i + args.batch_size]
         inputs = tokenizer(batch_prompts, return_tensors="pt", padding=True).to(model.device)
+        
+        eos_ids = [tokenizer.eos_token_id]
+        if "qwen" in args.model_name_or_path.lower():
+            eos_ids.extend([151645, 151643])
+        eos_ids = list(set([e for e in eos_ids if e is not None]))
         
         # We need to apply the hook during generation. 
         # Spherical Steering usually applies to each generated token.
@@ -99,7 +104,9 @@ def main(args):
                     **inputs, 
                     max_new_tokens=args.max_tokens,
                     do_sample=False,
-                    use_cache=True
+                    use_cache=True,
+                    eos_token_id=eos_ids,
+                    pad_token_id=tokenizer.pad_token_id
                 )
         
         prompt_len = inputs["input_ids"].shape[1]
