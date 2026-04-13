@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument("--kappa", type=float, default=20.0)
     parser.add_argument("--alpha", type=float, default=0.6)
     parser.add_argument("--beta", type=float, default=-0.05)
-    parser.add_argument("--max_tokens", type=int, default=1024)
+    parser.add_argument("--max_tokens", type=int, default=32768)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--max_examples", type=int, default=None)
     parser.add_argument("--start", type=int, default=0)

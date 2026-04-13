@@ -191,6 +191,17 @@ def main(args):
                 self.steering_split_ids = torch.LongTensor([vocab[token] for token in vocab.keys() if "ĊĊ" in token]).to(self.device)
                 self.steering_think_start_id = tokenizer.encode("<think>", add_special_tokens=False)[0]
                 self.steering_think_end_id = tokenizer.encode("</think>", add_special_tokens=False)[0]
+                
+                # Register hook to actually apply steering at the specified layer
+                if not hasattr(self, "_steering_hook_handle"):
+                    def steering_hook(module, args, output):
+                        if hasattr(self, 'current_act_steering_flag') and self.current_act_steering_flag is not None:
+                            h = output[0] if isinstance(output, tuple) else output
+                            flag = self.current_act_steering_flag.view(-1, 1, 1).to(h.dtype)
+                            h_new = h + self.steering_coef * self.steering_vector.view(1, 1, -1) * flag
+                            return (h_new,) if isinstance(output, tuple) else h_new
+                        return output
+                    self._steering_hook_handle = self.model.layers[steering_layer].register_forward_hook(steering_hook)
         
         def start_new_round(self):
             self.new_round = True
@@ -225,9 +236,11 @@ def main(args):
                 split_flag = torch.isin(last_tokens, self.steering_split_ids.to(input_ids.device))
                 steering_flag = torch.logical_and(split_flag, self.steering_think_flag)
                 if not torch.any(steering_flag):
-                    steering_flag = None
+                    self.current_act_steering_flag = None
+                else:
+                    self.current_act_steering_flag = steering_flag
             else:
-                steering_flag = None
+                self.current_act_steering_flag = None
             
             if hasattr(self, 'cur_steps'):
                 self.cur_steps += 1
@@ -330,7 +343,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_tokens",
         type=int,
-        default=1000,
+        default=32768,
     )
     parser.add_argument(
         "--batch_size",

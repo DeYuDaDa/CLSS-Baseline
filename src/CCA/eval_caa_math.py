@@ -110,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_dir", type=str, default="results/caa")
     parser.add_argument("--layer", type=int, default=24)
     parser.add_argument("--multiplier", type=float, default=1.0)
-    parser.add_argument("--max_tokens", type=int, default=1024)
+    parser.add_argument("--max_tokens", type=int, default=32768)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--max_examples", type=int, default=None)
     parser.add_argument("--start", type=int, default=0)

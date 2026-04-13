@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--aime_file", type=str, default="aime2024.jsonl")
     parser.add_argument("--save_dir", type=str, default="results/manifold")
     parser.add_argument("--alpha", type=float, default=0.3)
-    parser.add_argument("--max_tokens", type=int, default=1024)
+    parser.add_argument("--max_tokens", type=int, default=32768)
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--max_examples", type=int, default=None)
     parser.add_argument("--start", type=int, default=0)
