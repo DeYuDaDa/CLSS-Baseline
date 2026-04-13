@@ -83,7 +83,11 @@ def main(args):
     prefix = "Answer the following questions. You should think step-by-step and put your final answer within \\boxed{}.\n"
     prompts = []
     for example in test_data:
-        prompt = prefix + "Question: " + example["problem"].strip() + "\nAnswer: <think>\n"
+        q = example["problem"].strip()
+        if "qwen" in args.model_name_or_path.lower():
+            prompt = f"<|im_start|>system\nYou are a helpful and harmless assistant.<|im_end|>\n<|im_start|>user\n{prefix}Question: {q}<|im_end|>\n<|im_start|>assistant\n<think>\n"
+        else:
+            prompt = prefix + "Question: " + q + "\nAnswer: <think>\n"
         prompts.append(prompt)
 
     results = []

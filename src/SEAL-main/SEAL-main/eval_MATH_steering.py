@@ -143,7 +143,9 @@ def main(args):
     prompts = []
     for i, example in enumerate(test_data):
         prompt =  prefix+"Question: " + example["question"].strip()+"\nAnswer: "
-        if args.use_chat_format:
+        if "qwen" in args.model_name_or_path.lower() and not args.use_chat_format:
+            prompt = f"<|im_start|>system\nYou are a helpful and harmless assistant.<|im_end|>\n<|im_start|>user\n{prefix}Question: {example['question'].strip()}<|im_end|>\n<|im_start|>assistant\n<think>\n"
+        elif args.use_chat_format:
             if  "deepseek" in args.model_name_or_path:
                 messages = [{"role": "user", "content": prefix + "Question: " + example["question"].strip()}]
             else:
@@ -151,6 +153,8 @@ def main(args):
             prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             if args.remove_bos and tokenizer.bos_token is not None and prompt.startswith(tokenizer.bos_token):
                 prompt = prompt[len(tokenizer.bos_token):]
+            if "qwen" in args.model_name_or_path.lower():
+                prompt += "<think>\n"
         prompts.append(prompt)
     with open(os.path.join(args.save_dir, "example_prompt.txt"), 'w') as fout:
         fout.write(prompts[0])
