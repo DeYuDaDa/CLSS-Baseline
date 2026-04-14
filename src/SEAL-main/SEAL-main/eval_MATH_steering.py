@@ -239,8 +239,11 @@ def main(args):
                 last_tokens = input_ids[:,-1]
                 self.steering_think_flag = torch.logical_or(self.steering_think_flag, last_tokens==self.steering_think_start_id)
                 self.steering_think_flag = torch.logical_and(self.steering_think_flag, last_tokens!=self.steering_think_end_id)
-                split_flag = torch.isin(last_tokens, self.steering_split_ids.to(input_ids.device))
-                steering_flag = torch.logical_and(split_flag, self.steering_think_flag)
+                
+                # Apply steering to ALL tokens inside the <think> block for maximum visibility
+                # (Removing the 'split_ids' constraint which was too sparse for Qwen3)
+                steering_flag = self.steering_think_flag
+                
                 if not torch.any(steering_flag):
                     self.current_act_steering_flag = None
                 else:

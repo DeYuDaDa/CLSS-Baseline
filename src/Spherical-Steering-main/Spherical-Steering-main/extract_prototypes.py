@@ -54,7 +54,15 @@ def main():
     mu_T = mu_T / mu_T.norm()
     mu_H = mu_H / mu_H.norm()
 
-    save_path = os.path.join(VECTOR_DIR, "prototypes.pt")
+    # Ensure VECTOR_DIR is resolved relative to the global src/ directory
+    if not os.path.isabs(VECTOR_DIR):
+        actual_vector_dir = os.path.normpath(os.path.join(project_root, "src", VECTOR_DIR.lstrip("./")))
+    else:
+        actual_vector_dir = VECTOR_DIR
+
+    os.makedirs(actual_vector_dir, exist_ok=True)
+    save_path = os.path.join(actual_vector_dir, "prototypes.pt")
+    
     torch.save({"mu_T": mu_T, "mu_H": mu_H}, save_path)
     print(f"Prototypes saved to {save_path}")
 
