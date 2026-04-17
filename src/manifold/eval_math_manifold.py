@@ -8,10 +8,23 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import trange, tqdm
 import sys
 
-# Add project root and SEAL directory to path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-seal_dir = os.path.join(project_root, "src/SEAL-main/SEAL-main")
-sys.path.append(project_root)
+# Add project root (src) and SEAL directory to path
+# Script is in src/manifold/
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+src_dir = project_root # Since dirname(__file__) is src/manifold, ../.. is src/
+# If the above assumption is wrong and it should be Baseline/ root:
+# Let's be more robust:
+script_dir = os.path.dirname(os.path.abspath(__file__))
+src_index = script_dir.find(os.sep + "src" + os.sep)
+if src_index == -1 and script_dir.endswith(os.sep + "src"):
+    src_dir = script_dir
+elif src_index != -1:
+    src_dir = script_dir[:src_index + 4]
+else:
+    src_dir = script_dir # fallback
+
+seal_dir = os.path.join(src_dir, "SEAL-main/SEAL-main")
+sys.path.append(src_dir)
 sys.path.append(seal_dir)
 
 from util.loaders.aime_loader import load_aime_dataset

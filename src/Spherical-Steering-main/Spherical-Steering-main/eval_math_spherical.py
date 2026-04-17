@@ -8,10 +8,13 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from tqdm import trange, tqdm
 import sys
 
-# Add project root and SEAL directory to path
+# Add project root (src) and SEAL directory to path
+# Script is in src/Spherical-Steering-main/Spherical-Steering-main/
+# We need to add src/ to path to find util/
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-seal_dir = os.path.join(project_root, "src/SEAL-main/SEAL-main")
-sys.path.append(project_root)
+src_dir = os.path.join(project_root, "src")
+seal_dir = os.path.join(src_dir, "SEAL-main/SEAL-main")
+sys.path.append(src_dir)
 sys.path.append(seal_dir)
 
 from util.loaders.aime_loader import load_aime_dataset, build_aime_prompt
