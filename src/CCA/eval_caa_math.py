@@ -7,8 +7,9 @@ from tqdm import trange
 import sys
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(project_root)
-sys.path.append(os.path.join(project_root, "src/SEAL-main/SEAL-main"))
+src_dir = os.path.join(project_root, "src")
+sys.path.append(src_dir)
+sys.path.append(os.path.join(src_dir, "SEAL-main/SEAL-main"))
 
 from util.loaders.aime_loader import load_aime_dataset
 from util.loaders.math500_loader import load_math500_dataset
